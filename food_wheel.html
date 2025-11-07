@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今天吃什么 - 转盘决定</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            margin: 0 auto 40px;
+        }
+
+        #wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 8px solid #fff;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+            position: relative;
+            overflow: hidden;
+            background: transparent;
+        }
+
+        .wheel-segment {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            transform-origin: 100% 100%;
+            overflow: visible;
+        }
+
+        .segment-path {
+            width: 100%;
+            height: 100%;
+        }
+
+        .segment-text {
+            position: absolute;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            font-size: 18px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #ff4757;
+            z-index: 10;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+
+        .center-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            border: 4px solid #667eea;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #667eea;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .result {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff4757;
+            margin: 20px 0;
+            min-height: 40px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .spin-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .spin-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .spin-button:active {
+            transform: translateY(0);
+        }
+
+        .spin-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .food-list {
+            margin-top: 30px;
+        }
+
+        .food-list h2 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.5em;
+        }
+
+        .food-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .food-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .food-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .add-button, .remove-button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .add-button {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .add-button:hover {
+            background: #27ae60;
+            transform: translateY(-2px);
+        }
+
+        .remove-button {
+            background: #e74c3c;
+            color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .remove-button:hover {
+            background: #c0392b;
+        }
+
+        .food-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .food-item {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .food-item span {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .empty-message {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .wheel-container {
+                width: 300px;
+                height: 300px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍽️ 灯芯绒今天吃什么？</h1>
+        
+        <div class="wheel-container">
+            <div class="pointer"></div>
+            <div id="wheel"></div>
+            <div class="center-circle">转盘</div>
+        </div>
+
+        <div class="result" id="result"></div>
+
+        <div class="controls">
+            <button class="spin-button" id="spinButton">开始旋转</button>
+        </div>
+
+        <div class="food-list">
+            <h2>添加食物选项</h2>
+            <div class="food-input-group">
+                <input type="text" class="food-input" id="foodInput" placeholder="输入食物名称，例如：火锅、烧烤、日料...">
+                <button class="add-button" id="addButton">添加</button>
+            </div>
+            <div class="food-items" id="foodItems"></div>
+            
+            <div class="data-actions" style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #e9ecef;">
+                <h3 style="margin-bottom: 15px; color: #333; font-size: 1.2em;">数据管理</h3>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="export-button" id="exportButton" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold;">📤 导出数据</button>
+                    <button class="import-button" id="importButton" style="padding: 10px 20px; background: #9b59b6; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold;">📥 导入数据</button>
+                    <button class="share-button" id="shareButton" style="padding: 10px 20px; background: #e67e22; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold;">🔗 生成分享链接</button>
+                    <button class="qrcode-button" id="qrcodeButton" style="padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold;">📱 生成二维码</button>
+                </div>
+                <div id="dataInfo" style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px; font-size: 12px; color: #666; display: none;"></div>
+                <div id="qrcodeContainer" style="margin-top: 15px; text-align: center; display: none;">
+                    <div id="qrcode" style="display: inline-block; padding: 10px; background: white; border-radius: 8px;"></div>
+                    <p style="margin-top: 10px; font-size: 12px; color: #666;">用手机扫描二维码即可打开</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let foods = [];
+        let isSpinning = false;
+        let rotation = 0;
+
+        // 从localStorage加载食物列表
+        function loadFoods() {
+            // 首先检查URL参数中是否有数据
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlData = urlParams.get('data');
+            if (urlData) {
+                try {
+                    const decoded = decodeURIComponent(urlData);
+                    foods = JSON.parse(decoded);
+                    saveFoods();
+                    // 清除URL参数，避免刷新时重复导入
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    showInfo('已从链接导入数据！', 'success');
+                } catch (e) {
+                    console.error('导入URL数据失败:', e);
+                }
+            }
+            
+            // 如果没有URL数据，从localStorage加载
+            if (foods.length === 0) {
+                const saved = localStorage.getItem('foodWheelItems');
+                if (saved) {
+                    foods = JSON.parse(saved);
+                } else {
+                    // 默认食物
+                    foods = ['火锅', '烧烤', '日料', '川菜', '粤菜', '西餐', '快餐', '家常菜'];
+                }
+            }
+            updateFoodList();
+            drawWheel();
+        }
+        
+        // 显示信息
+        function showInfo(message, type = 'info') {
+            const infoDiv = document.getElementById('dataInfo');
+            infoDiv.innerHTML = message;
+            infoDiv.style.display = 'block';
+            if (type === 'success') {
+                infoDiv.style.background = '#d4edda';
+                infoDiv.style.color = '#155724';
+            } else if (type === 'error') {
+                infoDiv.style.background = '#f8d7da';
+                infoDiv.style.color = '#721c24';
+            } else {
+                infoDiv.style.background = '#f8f9fa';
+                infoDiv.style.color = '#666';
+            }
+            // 错误信息不自动隐藏
+            if (type !== 'error') {
+                setTimeout(() => {
+                    infoDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        // 导出数据
+        function exportData() {
+            const dataStr = JSON.stringify(foods, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'food_wheel_data.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showInfo('数据已导出！', 'success');
+        }
+        
+        // 导入数据
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const imported = JSON.parse(event.target.result);
+                            if (Array.isArray(imported)) {
+                                foods = imported;
+                                saveFoods();
+                                updateFoodList();
+                                drawWheel();
+                                showInfo(`成功导入 ${foods.length} 个食物选项！`, 'success');
+                            } else {
+                                showInfo('数据格式错误！', 'error');
+                            }
+                        } catch (error) {
+                            showInfo('导入失败，请检查文件格式！', 'error');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+        
+        // 生成分享链接
+        function generateShareLink() {
+            const dataStr = JSON.stringify(foods);
+            const encoded = encodeURIComponent(dataStr);
+            const currentUrl = window.location.href.split('?')[0];
+            const shareUrl = `${currentUrl}?data=${encoded}`;
+            
+            // 检查是否是本地文件
+            if (window.location.protocol === 'file:') {
+                showInfo('⚠️ 当前是本地文件，链接无法在手机上直接打开！<br>请使用"生成二维码"功能，或部署到服务器后使用。', 'error');
+                showShareUrl(shareUrl, true);
+                return;
+            }
+            
+            // 复制到剪贴板
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    showInfo('分享链接已复制到剪贴板！可以发送到手机打开。', 'success');
+                }).catch(() => {
+                    // 如果复制失败，显示链接让用户手动复制
+                    showShareUrl(shareUrl);
+                });
+            } else {
+                // 不支持剪贴板API，显示链接
+                showShareUrl(shareUrl);
+            }
+        }
+        
+        // 生成二维码
+        function generateQRCode() {
+            const dataStr = JSON.stringify(foods);
+            const encoded = encodeURIComponent(dataStr);
+            const currentUrl = window.location.href.split('?')[0];
+            const shareUrl = `${currentUrl}?data=${encoded}`;
+            
+            // 检查是否是本地文件
+            if (window.location.protocol === 'file:') {
+                showInfo('⚠️ 本地文件无法生成可用的二维码！<br><br><strong>解决方案：</strong><br>1. 使用"导出数据"功能，将JSON文件传到手机<br>2. 或将文件部署到服务器（GitHub Pages等）', 'error');
+                return;
+            }
+            
+            // 使用在线二维码API生成二维码
+            const qrcodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(shareUrl)}`;
+            const qrcodeContainer = document.getElementById('qrcodeContainer');
+            const qrcodeDiv = document.getElementById('qrcode');
+            
+            qrcodeDiv.innerHTML = `<img src="${qrcodeUrl}" alt="二维码" style="max-width: 100%; height: auto;">`;
+            qrcodeContainer.style.display = 'block';
+            showInfo('二维码已生成！用手机扫描即可打开并自动导入数据。', 'success');
+        }
+        
+        // 显示分享链接
+        function showShareUrl(url, isLocalFile = false) {
+            const infoDiv = document.getElementById('dataInfo');
+            const warning = isLocalFile ? '<p style="color: #e74c3c; margin-bottom: 10px;"><strong>⚠️ 注意：这是本地文件链接，手机无法直接打开！</strong></p>' : '';
+            infoDiv.innerHTML = `
+                ${warning}
+                <strong>分享链接：</strong><br>
+                <input type="text" value="${url}" readonly 
+                    style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;"
+                    onclick="this.select()">
+                <p style="margin-top: 5px; font-size: 11px; color: #999;">${isLocalFile ? '本地文件链接无法在手机上使用，请使用"导出数据"功能或部署到服务器。' : '点击输入框全选，然后复制链接发送到手机即可'}</p>
+            `;
+            infoDiv.style.display = 'block';
+        }
+
+        // 保存食物列表到localStorage
+        function saveFoods() {
+            localStorage.setItem('foodWheelItems', JSON.stringify(foods));
+        }
+
+        // 绘制转盘
+        function drawWheel() {
+            const wheel = document.getElementById('wheel');
+            wheel.innerHTML = '';
+            
+            if (foods.length === 0) {
+                wheel.style.background = '#f0f0f0';
+                return;
+            }
+
+            // 使用更鲜艳、对比度更高的颜色
+            const colors = [
+                '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A',
+                '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2',
+                '#F8B739', '#95E1D3', '#F38181', '#AA96DA',
+                '#FF6B9D', '#C44569', '#6C5CE7', '#00D2D3',
+                '#FFC312', '#FF6348', '#5F27CD', '#00D2FF',
+                '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3'
+            ];
+
+            const size = 400;
+            const center = size / 2;
+            const radius = size / 2 - 8; // 减去边框宽度
+            const angle = 360 / foods.length;
+            
+            // 创建 SVG
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', size);
+            svg.setAttribute('height', size);
+            svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+            svg.style.position = 'absolute';
+            svg.style.top = '0';
+            svg.style.left = '0';
+            svg.style.width = '100%';
+            svg.style.height = '100%';
+            
+            // 添加文字阴影效果（共享filter）
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const filter = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+            filter.setAttribute('id', 'text-shadow');
+            const feDropShadow = document.createElementNS('http://www.w3.org/2000/svg', 'feDropShadow');
+            feDropShadow.setAttribute('dx', '2');
+            feDropShadow.setAttribute('dy', '2');
+            feDropShadow.setAttribute('stdDeviation', '2');
+            feDropShadow.setAttribute('flood-opacity', '0.5');
+            filter.appendChild(feDropShadow);
+            defs.appendChild(filter);
+            svg.appendChild(defs);
+            
+            foods.forEach((food, index) => {
+                const startAngle = (index * angle - 90) * Math.PI / 180;
+                const endAngle = ((index + 1) * angle - 90) * Math.PI / 180;
+                
+                // 计算扇形路径
+                const x1 = center + radius * Math.cos(startAngle);
+                const y1 = center + radius * Math.sin(startAngle);
+                const x2 = center + radius * Math.cos(endAngle);
+                const y2 = center + radius * Math.sin(endAngle);
+                
+                const largeArc = angle > 180 ? 1 : 0;
+                
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const pathData = `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+                path.setAttribute('d', pathData);
+                path.setAttribute('fill', colors[index % colors.length]);
+                path.setAttribute('stroke', '#fff');
+                path.setAttribute('stroke-width', '3'); // 增加边框宽度，使分块更明显
+                path.setAttribute('stroke-linejoin', 'round');
+                svg.appendChild(path);
+                
+                // 添加文字
+                const textAngle = (index * angle + angle / 2 - 90) * Math.PI / 180;
+                const textRadius = radius * 0.65; // 文字距离中心的距离
+                const textX = center + textRadius * Math.cos(textAngle);
+                const textY = center + textRadius * Math.sin(textAngle);
+                
+                // 根据食物数量和角度自动调整字体大小
+                let fontSize = 18;
+                if (foods.length > 8) fontSize = 14;
+                if (foods.length > 12) fontSize = 12;
+                if (angle < 30) fontSize = Math.max(10, fontSize - 2);
+                
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', textX);
+                text.setAttribute('y', textY);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('dominant-baseline', 'middle');
+                text.setAttribute('fill', 'white');
+                text.setAttribute('font-size', fontSize);
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('font-family', 'Microsoft YaHei, Arial, sans-serif');
+                
+                // 使用共享的文字阴影效果
+                text.setAttribute('filter', 'url(#text-shadow)');
+                text.textContent = food;
+                svg.appendChild(text);
+            });
+            
+            wheel.appendChild(svg);
+        }
+
+        // 更新食物列表显示
+        function updateFoodList() {
+            const container = document.getElementById('foodItems');
+            container.innerHTML = '';
+            
+            if (foods.length === 0) {
+                container.innerHTML = '<div class="empty-message">还没有添加食物，快添加一些吧！</div>';
+                return;
+            }
+
+            foods.forEach((food, index) => {
+                const item = document.createElement('div');
+                item.className = 'food-item';
+                item.innerHTML = `
+                    <span>${food}</span>
+                    <button class="remove-button" onclick="removeFood(${index})">删除</button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // 添加食物
+        function addFood() {
+            const input = document.getElementById('foodInput');
+            const food = input.value.trim();
+            
+            if (food === '') {
+                alert('请输入食物名称！');
+                return;
+            }
+            
+            if (foods.includes(food)) {
+                alert('这个食物已经存在了！');
+                return;
+            }
+            
+            foods.push(food);
+            input.value = '';
+            saveFoods();
+            updateFoodList();
+            drawWheel();
+        }
+
+        // 删除食物
+        function removeFood(index) {
+            foods.splice(index, 1);
+            saveFoods();
+            updateFoodList();
+            drawWheel();
+        }
+
+        // 旋转转盘
+        function spinWheel() {
+            if (isSpinning || foods.length === 0) return;
+            
+            isSpinning = true;
+            const spinButton = document.getElementById('spinButton');
+            const wheel = document.getElementById('wheel');
+            const result = document.getElementById('result');
+            
+            spinButton.disabled = true;
+            result.textContent = '';
+            
+            // 随机旋转角度（至少转3圈）
+            const spins = 3 + Math.random() * 2; // 3-5圈
+            const randomAngle = Math.random() * 360;
+            const totalRotation = rotation + spins * 360 + randomAngle;
+            
+            wheel.style.transform = `rotate(${totalRotation}deg)`;
+            rotation = totalRotation % 360;
+            
+            // 计算最终选中的食物
+            setTimeout(() => {
+                const anglePerItem = 360 / foods.length;
+                // 指针在顶部，在数学坐标系中是270度（-90度）
+                const pointerAngle = 270;
+                
+                // CSS rotate是顺时针旋转，转盘顺时针旋转rotation度
+                // 转盘初始时，扇形i从 (i * anglePerItem - 90)度 开始（数学坐标系）
+                // 转盘顺时针旋转rotation度后，转盘上的点都顺时针移动了rotation度
+                // 指针固定在顶部（270度），所以它指向转盘上原本在 (270 - rotation) % 360 度的位置
+                
+                // 计算指针指向的转盘上的角度（转盘初始位置时的角度）
+                const targetAngle = (270 - rotation) % 360;
+                const targetAngleNormalized = (targetAngle + 360) % 360;
+                
+                // 找到包含这个角度的扇形
+                let selectedIndex = 0;
+                let found = false;
+                
+                for (let i = 0; i < foods.length; i++) {
+                    // 扇形i的起始角度（转盘初始位置，数学坐标系）
+                    let startAngle = (i * anglePerItem - 90) % 360;
+                    if (startAngle < 0) startAngle += 360;
+                    
+                    // 扇形i的结束角度（转盘初始位置，数学坐标系）
+                    let endAngle = ((i + 1) * anglePerItem - 90) % 360;
+                    if (endAngle < 0) endAngle += 360;
+                    
+                    // 检查目标角度是否在这个扇形的范围内
+                    if (startAngle < endAngle) {
+                        // 正常情况：起始角度 < 结束角度
+                        if (targetAngleNormalized >= startAngle && targetAngleNormalized < endAngle) {
+                            selectedIndex = i;
+                            found = true;
+                            break;
+                        }
+                    } else {
+                        // 跨越0度的情况：起始角度 > 结束角度（例如：350度到10度）
+                        if (targetAngleNormalized >= startAngle || targetAngleNormalized < endAngle) {
+                            selectedIndex = i;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // 如果没找到，使用中心点最近的方法
+                if (!found) {
+                    let minDiff = 360;
+                    for (let i = 0; i < foods.length; i++) {
+                        const centerAngle = (i * anglePerItem + anglePerItem / 2 - 90) % 360;
+                        const centerAngleNormalized = (centerAngle + 360) % 360;
+                        let diff = Math.abs(centerAngleNormalized - targetAngleNormalized);
+                        if (diff > 180) diff = 360 - diff;
+                        if (diff < minDiff) {
+                            minDiff = diff;
+                            selectedIndex = i;
+                        }
+                    }
+                }
+                
+                result.textContent = `🎉 今天吃：${foods[selectedIndex]}！`;
+                isSpinning = false;
+                spinButton.disabled = false;
+            }, 4000);
+        }
+
+        // 事件监听
+        document.getElementById('addButton').addEventListener('click', addFood);
+        document.getElementById('foodInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addFood();
+            }
+        });
+        document.getElementById('spinButton').addEventListener('click', spinWheel);
+        document.getElementById('exportButton').addEventListener('click', exportData);
+        document.getElementById('importButton').addEventListener('click', importData);
+        document.getElementById('shareButton').addEventListener('click', generateShareLink);
+        document.getElementById('qrcodeButton').addEventListener('click', generateQRCode);
+
+        // 初始化
+        loadFoods();
+    </script>
+</body>
+</html>
